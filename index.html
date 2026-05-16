@@ -107,6 +107,7 @@
       white-space: nowrap;
       cursor: pointer;
       transition: background .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease;
+      touch-action: manipulation;
     }
 
     .chip.active {
@@ -131,6 +132,7 @@
       background: rgba(255,255,255,.72);
       box-shadow: var(--shadow);
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
     .table-shell.hidden {
@@ -198,6 +200,7 @@
       color: #17201e;
       cursor: default;
       transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease, background .16s ease;
+      touch-action: manipulation;
     }
 
     @keyframes elementEnter {
@@ -921,6 +924,138 @@
       .score {
         display: block;
         margin-top: 12px;
+      }
+    }
+
+    @media (max-width: 700px) {
+      .wiki-tooltip {
+        width: calc(100vw - 20px);
+        max-width: 370px;
+      }
+
+      .visuals {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .wiki-link {
+        grid-column: 1 / -1;
+        width: auto;
+        height: 48px;
+        flex-direction: row;
+        gap: 8px;
+      }
+
+      .wiki-link span {
+        margin-top: 0;
+        font-size: 1rem;
+      }
+
+      .safety-card {
+        width: calc(100vw - 40px);
+        max-width: 380px;
+      }
+
+      .rs-detail {
+        width: calc(100vw - 40px);
+        max-width: 300px;
+      }
+
+      .mode-switch {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .quiz-card {
+        grid-template-columns: 1fr;
+      }
+
+      .score {
+        display: block;
+        margin-top: 8px;
+      }
+
+      .element .symbol {
+        font-size: 1.2rem;
+      }
+
+      .element .name {
+        font-size: .55rem;
+      }
+
+      .element .number {
+        font-size: .55rem;
+      }
+
+      .quiz.open {
+        margin: auto;
+        padding: 12px;
+      }
+
+      .answer-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .table-shell {
+        padding: 6px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .visuals {
+        grid-template-columns: 1fr;
+      }
+
+      .element-image,
+      .atom-diagram {
+        width: 100%;
+        height: 80px;
+      }
+
+      .quiz-btn {
+        padding: 12px;
+        font-size: .95rem;
+      }
+
+      .question strong {
+        font-size: 1.6rem;
+      }
+
+      .answer-row {
+        grid-template-columns: 1fr;
+      }
+
+      .mode-switch button {
+        font-size: .72rem;
+        padding: 6px 10px;
+      }
+
+      .element {
+        padding: 3px;
+        gap: 1px;
+      }
+
+      .element .symbol {
+        font-size: 1rem;
+      }
+
+      .element .name,
+      .element .number {
+        font-size: .48rem;
+      }
+
+      .periodic-table {
+        gap: 3px;
+      }
+
+      .axis-label {
+        font-size: .55rem;
+      }
+
+      h1 {
+        font-size: clamp(1.5rem, 6vw, 2rem);
+      }
+
+      .lead {
+        font-size: .88rem;
       }
     }
   </style>
@@ -2822,17 +2957,31 @@
       tile.addEventListener("focus", () => showTooltip(tile, element));
       tile.addEventListener("blur", scheduleHideTooltip);
       tile.addEventListener("mouseenter", clearTemporaryHighlight);
+      tile.addEventListener("touchend", (e) => {
+        if (!wikiTooltip.classList.contains("visible") || wikiTooltip.dataset.symbol !== element.symbol) {
+          showTooltip(tile, element);
+        }
+      });
     });
 
     table.addEventListener("mouseleave", clearTemporaryHighlight);
     wikiTooltip.addEventListener("mouseenter", () => window.clearTimeout(tooltipHideTimer));
     wikiTooltip.addEventListener("mousemove", updateMediaZoom);
+    wikiTooltip.addEventListener("touchmove", (e) => {
+      const touch = e.touches[0];
+      updateMediaZoom({ clientX: touch.clientX, clientY: touch.clientY });
+    });
     wikiTooltip.addEventListener("wheel", updateWheelZoom, { passive: false });
     wikiTooltip.addEventListener("mouseleave", hideTooltip);
     window.addEventListener("scroll", hideTooltip, { passive: true });
     window.addEventListener("resize", hideTooltip);
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") hideTooltip();
+    });
+    document.addEventListener("touchstart", (e) => {
+      if (wikiTooltip.classList.contains("visible") && !wikiTooltip.contains(e.target) && !e.target.closest(".element")) {
+        hideTooltip();
+      }
     });
 
     const selectedElements = elements.filter((element) => saturatedSymbols.has(element.symbol));
