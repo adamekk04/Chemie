@@ -505,8 +505,9 @@
       height: 12px;
     }
 
-    .safety:hover .safety-card,
-    .safety:focus-within .safety-card {
+    .safety.hover .safety-card,
+    .safety:focus-within .safety-card,
+    .safety.open .safety-card {
       opacity: 1;
       pointer-events: auto;
       transform: translateY(0);
@@ -581,8 +582,9 @@
       margin: 3px 0;
     }
 
-    .rs-chip:hover .rs-detail,
-    .rs-chip:focus-within .rs-detail {
+    .rs-chip.hover .rs-detail,
+    .rs-chip:focus-within .rs-detail,
+    .rs-chip.open .rs-detail {
       opacity: 1;
       transform: translateY(0);
     }
@@ -754,7 +756,8 @@
     }
 
     .mode-switch {
-      display: inline-grid;
+      display: grid;
+      width: 100%;
       grid-template-columns: repeat(4, 1fr);
       gap: 4px;
       padding: 4px;
@@ -786,10 +789,13 @@
     }
 
     .quiz-card {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: end;
+      display: block;
+    }
+
+    .quiz-card .score {
+      float: right;
+      margin: 0 0 8px 12px;
+      line-height: inherit;
     }
 
     .question {
@@ -922,6 +928,7 @@
       }
 
       .score {
+        float: none;
         display: block;
         margin-top: 12px;
       }
@@ -964,11 +971,8 @@
         grid-template-columns: 1fr 1fr;
       }
 
-      .quiz-card {
-        grid-template-columns: 1fr;
-      }
-
       .score {
+        float: none;
         display: block;
         margin-top: 8px;
       }
@@ -1122,6 +1126,7 @@
         <div class="quiz-card" id="quizCard">
           <div>
             <div class="question">
+              <span class="score" id="score">0 / 0</span>
               <small id="questionLabel">Napiš název prvku</small>
               <strong id="questionText">H</strong>
             </div>
@@ -1133,7 +1138,6 @@
             </div>
             <p class="feedback" id="feedback"></p>
           </div>
-          <span class="score" id="score">0 / 0</span>
         </div>
 
         <div class="quiz-results" id="quizResults" style="display:none">
@@ -2722,6 +2726,7 @@
 
     function clearMediaZoom() {
       wikiTooltip.querySelectorAll(".zoomed").forEach((item) => {
+        if (item.dataset.zoomLocked) return;
         item.classList.remove("zoomed");
         item.style.removeProperty("--zoom");
         item.style.removeProperty("--electron-scale");
@@ -2740,6 +2745,7 @@
       let closestDistance = Infinity;
 
       targets.forEach((target) => {
+        if (target.dataset.zoomLocked) return;
         const rect = target.getBoundingClientRect();
         const expansion = rect.width * .42;
         const inside =
@@ -2759,17 +2765,28 @@
         }
       });
 
-      clearMediaZoom();
-      if (closest) {
-        closest.classList.add("zoomed");
-        if (!closest.style.getPropertyValue("--zoom")) {
-          closest.style.setProperty("--zoom", "1.75");
-        }
-        if (closest.classList.contains("atom-diagram")) {
-          const zoom = Number(closest.style.getPropertyValue("--zoom")) || 1.75;
-          closest.style.setProperty("--electron-scale", (1 / zoom).toFixed(3));
-          closest.style.setProperty("--nucleus-scale", nucleusScale(zoom));
-        }
+      if (!closest) {
+        clearMediaZoom();
+        return;
+      }
+
+      targets.forEach((target) => {
+        if (target.dataset.zoomLocked) return;
+        if (target === closest) return;
+        target.classList.remove("zoomed");
+        target.style.removeProperty("--zoom");
+        target.style.removeProperty("--electron-scale");
+        target.style.removeProperty("--nucleus-scale");
+      });
+
+      closest.classList.add("zoomed");
+      if (!closest.style.getPropertyValue("--zoom")) {
+        closest.style.setProperty("--zoom", "1.75");
+      }
+      if (closest.classList.contains("atom-diagram")) {
+        const zoom = Number(closest.style.getPropertyValue("--zoom")) || 1.75;
+        closest.style.setProperty("--electron-scale", (1 / zoom).toFixed(3));
+        closest.style.setProperty("--nucleus-scale", nucleusScale(zoom));
       }
     }
 
@@ -2834,6 +2851,58 @@
       wikiTooltip.style.top = "0";
       wikiTooltip.classList.add("visible");
 
+      wikiTooltip.querySelectorAll(".safety").forEach((el) => {
+        el.addEventListener("mouseenter", () => el.classList.add("hover"));
+        el.addEventListener("mouseleave", () => {
+          if (!el.classList.contains("open")) el.classList.remove("hover");
+        });
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (el.classList.contains("hover") || el.classList.contains("open")) {
+            el.classList.remove("hover", "open");
+          } else {
+            el.classList.add("open");
+          }
+        });
+      });
+      wikiTooltip.querySelectorAll(".rs-chip").forEach((el) => {
+        el.addEventListener("mouseenter", () => el.classList.add("hover"));
+        el.addEventListener("mouseleave", () => {
+          if (!el.classList.contains("open")) el.classList.remove("hover");
+        });
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (el.classList.contains("hover") || el.classList.contains("open")) {
+            el.classList.remove("hover", "open");
+          } else {
+            el.classList.add("open");
+          }
+        });
+      });
+      wikiTooltip.querySelectorAll(".element-image, .atom-diagram").forEach((el) => {
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          if (el.classList.contains("zoomed")) {
+            el.classList.remove("zoomed");
+            el.style.removeProperty("--zoom");
+            el.style.removeProperty("--electron-scale");
+            el.style.removeProperty("--nucleus-scale");
+            el.dataset.zoomLocked = "true";
+          } else {
+            el.dataset.zoomLocked = "true";
+            el.classList.add("zoomed");
+            if (!el.style.getPropertyValue("--zoom")) {
+              el.style.setProperty("--zoom", "1.75");
+            }
+            if (el.classList.contains("atom-diagram")) {
+              const zoom = Number(el.style.getPropertyValue("--zoom")) || 1.75;
+              el.style.setProperty("--electron-scale", (1 / zoom).toFixed(3));
+              el.style.setProperty("--nucleus-scale", nucleusScale(zoom));
+            }
+          }
+        });
+      });
+
       const tooltipRect = wikiTooltip.getBoundingClientRect();
       const left = Math.min(
         window.innerWidth - tooltipRect.width - 8,
@@ -2857,7 +2926,10 @@
       hydrateWikiInfo(element);
     }
 
+    let filterLocked = false;
+
     function clearTemporaryHighlight() {
+      if (filterLocked) return;
       table.classList.remove("is-filtering");
       document.querySelectorAll(".temp-rich").forEach((item) => item.classList.remove("temp-rich"));
       document.querySelectorAll(".axis-label.active").forEach((item) => item.classList.remove("active"));
@@ -2865,6 +2937,7 @@
     }
 
     function highlightTemporary(type, value, label) {
+      filterLocked = false;
       clearTemporaryHighlight();
       hideTooltip();
       table.classList.add("is-filtering");
@@ -2880,14 +2953,28 @@
       item.dataset.group = key;
       item.style.setProperty("--order", animOrder++);
       item.innerHTML = `<span class="dot" style="--color:${group.color}"></span>${group.label}`;
-      item.addEventListener("mouseenter", () => highlightTemporary("group", key, item));
+      item.addEventListener("mouseenter", () => {
+        if (!filterLocked) highlightTemporary("group", key, item);
+      });
+      item.addEventListener("click", () => {
+        if (item.classList.contains("active")) {
+          filterLocked = false;
+          clearTemporaryHighlight();
+        } else {
+          highlightTemporary("group", key, item);
+          filterLocked = true;
+          hideTooltip();
+        }
+      });
       item.addEventListener("wheel", (event) => {
         event.preventDefault();
-        highlightTemporary("group", key, item);
+        if (!filterLocked) highlightTemporary("group", key, item);
       }, { passive: false });
       legend.appendChild(item);
     });
-    legend.addEventListener("mouseleave", clearTemporaryHighlight);
+    legend.addEventListener("mouseleave", () => {
+      if (!filterLocked) clearTemporaryHighlight();
+    });
 
     const columnNames = {
       1: "I. A",
@@ -2917,7 +3004,18 @@
       label.innerHTML = `${column}<span>${columnNames[column]}</span>`;
       label.style.gridColumn = column + 1;
       label.dataset.axis = "column";
-      label.addEventListener("mouseenter", () => highlightTemporary("column", column, label));
+      label.addEventListener("mouseenter", () => {
+        if (!filterLocked) highlightTemporary("column", column, label);
+      });
+      label.addEventListener("click", () => {
+        if (label.classList.contains("active")) {
+          filterLocked = false;
+          clearTemporaryHighlight();
+        } else {
+          highlightTemporary("column", column, label);
+          filterLocked = true;
+        }
+      });
       table.appendChild(label);
     }
 
@@ -2932,7 +3030,18 @@
       label.style.gridColumn = 1;
       label.style.gridRow = row + 1;
       label.dataset.axis = "row";
-      label.addEventListener("mouseenter", () => highlightTemporary("period-row", row, label));
+      label.addEventListener("mouseenter", () => {
+        if (!filterLocked) highlightTemporary("period-row", row, label);
+      });
+      label.addEventListener("click", () => {
+        if (label.classList.contains("active")) {
+          filterLocked = false;
+          clearTemporaryHighlight();
+        } else {
+          highlightTemporary("period-row", row, label);
+          filterLocked = true;
+        }
+      });
       table.appendChild(label);
     });
 
@@ -2988,15 +3097,20 @@
       tile.addEventListener("mouseleave", scheduleHideTooltip);
       tile.addEventListener("focus", () => showTooltip(tile, element));
       tile.addEventListener("blur", scheduleHideTooltip);
-      tile.addEventListener("mouseenter", clearTemporaryHighlight);
-      tile.addEventListener("touchend", (e) => {
-        if (!wikiTooltip.classList.contains("visible") || wikiTooltip.dataset.symbol !== element.symbol) {
+      tile.addEventListener("click", (e) => {
+        if (wikiTooltip.classList.contains("visible") && wikiTooltip.dataset.symbol === element.symbol) {
+          window.clearTimeout(tooltipHideTimer);
+          hideTooltip();
+        } else {
+          window.clearTimeout(tooltipHideTimer);
           showTooltip(tile, element);
         }
       });
     });
+    table.addEventListener("mouseleave", () => {
+      if (!filterLocked) clearTemporaryHighlight();
+    });
 
-    table.addEventListener("mouseleave", clearTemporaryHighlight);
     wikiTooltip.addEventListener("mouseenter", () => window.clearTimeout(tooltipHideTimer));
     wikiTooltip.addEventListener("mousemove", updateMediaZoom);
     wikiTooltip.addEventListener("touchmove", (e) => {
