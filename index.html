@@ -2847,8 +2847,6 @@
       wikiTooltip.innerHTML = source.innerHTML;
       wikiTooltip.dataset.symbol = element.symbol;
       wikiTooltip.style.setProperty("--color", tile.style.getPropertyValue("--color"));
-      wikiTooltip.style.left = "0";
-      wikiTooltip.style.top = "0";
       wikiTooltip.classList.add("visible");
 
       wikiTooltip.querySelectorAll(".safety").forEach((el) => {
@@ -2861,6 +2859,7 @@
           if (el.classList.contains("hover") || el.classList.contains("open")) {
             el.classList.remove("hover", "open");
           } else {
+            el.closest(".safety-row")?.querySelectorAll(".safety.open").forEach((s) => s.classList.remove("open"));
             el.classList.add("open");
           }
         });
@@ -2875,6 +2874,7 @@
           if (el.classList.contains("hover") || el.classList.contains("open")) {
             el.classList.remove("hover", "open");
           } else {
+            el.closest(".rs-block")?.querySelectorAll(".rs-chip.open").forEach((c) => c.classList.remove("open"));
             el.classList.add("open");
           }
         });
@@ -2882,6 +2882,15 @@
       wikiTooltip.querySelectorAll(".element-image, .atom-diagram").forEach((el) => {
         el.addEventListener("click", (e) => {
           e.stopPropagation();
+          wikiTooltip.querySelectorAll(".element-image, .atom-diagram").forEach((other) => {
+            if (other !== el) {
+              other.classList.remove("zoomed");
+              other.style.removeProperty("--zoom");
+              other.style.removeProperty("--electron-scale");
+              other.style.removeProperty("--nucleus-scale");
+              delete other.dataset.zoomLocked;
+            }
+          });
           if (el.classList.contains("zoomed")) {
             el.classList.remove("zoomed");
             el.style.removeProperty("--zoom");
