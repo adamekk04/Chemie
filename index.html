@@ -1259,7 +1259,7 @@
       ["Tl","Thallium",81,13,6,"metal","204,38","Toxický měkký kov s využitím ve speciálních materiálech."],
       ["Pb","Olovo",82,14,6,"metal","207,2","Hustý měkký kov používaný v akumulátorech a stínění záření."],
       ["Bi","Bismut",83,15,6,"metal","208,98","Těžký kov s nízkou toxicitou a typickými duhovými krystaly."],
-      ["Po","Polonium",84,16,6,"metalloid","[209]","Radioaktivní prvek objevený Marií Curie-Skłodowskou."],
+      ["Po","Polonium",84,16,6,"metal","[209]","Radioaktivní prvek objevený Marií Curie-Skłodowskou."],
       ["At","Astat",85,17,6,"halogen","[210]","Velmi vzácný radioaktivní halogen."],
       ["Rn","Radon",86,18,6,"noble","[222]","Radioaktivní vzácný plyn vznikající rozpadem radia."],
       ["Fr","Francium",87,1,7,"alkali","[223]","Extrémně vzácný radioaktivní alkalický kov."],
@@ -1303,6 +1303,7 @@
     document.body.appendChild(wikiTooltip);
     const wikiCache = new Map();
     let tooltipHideTimer = 0;
+    let tooltipOpenedByFocus = false;
 
     function hideTooltip() {
       window.clearTimeout(tooltipHideTimer);
@@ -1425,7 +1426,7 @@
       Tl: { appearance: "stříbřitě šedý kov", density: "11,85 g/cm3", state: "pevná látka", hardness: "1,2 Mohs", melt: "304 °C", boil: "1473 °C" },
       Pb: { appearance: "modrošedý měkký kov", density: "11,34 g/cm3", state: "pevná látka", hardness: "1,5 Mohs", melt: "327,46 °C", boil: "1749 °C" },
       Bi: { appearance: "stříbřitý křehký kov", density: "9,78 g/cm3", state: "pevná látka", hardness: "2,25 Mohs", melt: "271,4 °C", boil: "1564 °C" },
-      Po: { appearance: "stříbřitý radioaktivní polokov", density: "9,20 g/cm3", state: "pevná látka", hardness: "-", melt: "254 °C", boil: "962 °C" },
+      Po: { appearance: "stříbřitý radioaktivní kov", density: "9,20 g/cm3", state: "pevná látka", hardness: "-", melt: "254 °C", boil: "962 °C" },
       At: { appearance: "tmavý radioaktivní halogen", density: "odhad 7 g/cm3", state: "pevná látka", hardness: "-", melt: "302 °C odhad", boil: "337 °C odhad" },
       Rn: { appearance: "bezbarvý radioaktivní plyn", density: "0,00973 g/cm3", state: "plyn", hardness: "-", melt: "-71 °C", boil: "-61,7 °C" },
       Fr: { appearance: "radioaktivní alkalický kov", density: "odhad 1,87 g/cm3", state: "pevná látka", hardness: "-", melt: "27 °C odhad", boil: "677 °C odhad" },
@@ -2966,7 +2967,7 @@
         if (!filterLocked) highlightTemporary("group", key, item);
       });
       item.addEventListener("click", () => {
-        if (item.classList.contains("active")) {
+        if (filterLocked) {
           filterLocked = false;
           clearTemporaryHighlight();
         } else {
@@ -3017,7 +3018,7 @@
         if (!filterLocked) highlightTemporary("column", column, label);
       });
       label.addEventListener("click", () => {
-        if (label.classList.contains("active")) {
+        if (filterLocked) {
           filterLocked = false;
           clearTemporaryHighlight();
         } else {
@@ -3043,7 +3044,7 @@
         if (!filterLocked) highlightTemporary("period-row", row, label);
       });
       label.addEventListener("click", () => {
-        if (label.classList.contains("active")) {
+        if (filterLocked) {
           filterLocked = false;
           clearTemporaryHighlight();
         } else {
@@ -3104,14 +3105,23 @@
       table.appendChild(tile);
       tile.addEventListener("mouseenter", () => showTooltip(tile, element));
       tile.addEventListener("mouseleave", scheduleHideTooltip);
-      tile.addEventListener("focus", () => showTooltip(tile, element));
+      tile.addEventListener("focus", () => {
+        if (wikiTooltip.classList.contains("visible") && wikiTooltip.dataset.symbol === element.symbol) return;
+        tooltipOpenedByFocus = true;
+        window.clearTimeout(tooltipHideTimer);
+        showTooltip(tile, element);
+      });
       tile.addEventListener("blur", scheduleHideTooltip);
       tile.addEventListener("click", (e) => {
+        window.clearTimeout(tooltipHideTimer);
+        if (tooltipOpenedByFocus) {
+          tooltipOpenedByFocus = false;
+          return;
+        }
         if (wikiTooltip.classList.contains("visible") && wikiTooltip.dataset.symbol === element.symbol) {
-          window.clearTimeout(tooltipHideTimer);
+          tile.blur();
           hideTooltip();
         } else {
-          window.clearTimeout(tooltipHideTimer);
           showTooltip(tile, element);
         }
       });
